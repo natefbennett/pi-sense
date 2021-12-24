@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta http-equiv="refresh" content="60" />
+    <title>Wireless Hygrometer</title>
+</head>
+<body>
+    <div class="container p-4">
+        <div class="row p-2">
+            <h1 class="display-4 text-center">Wireless Hygrometer</h1>
+        </div>
+        <div class="row p-3">
+            <div class="col">
+                <button type="submit" class="btn btn-outline-success float-end w-75" onclick="handleHumidCSV()">Download Humidity CSV</button>
+            </div>
+            <div class="col">
+                <button type="submit" class="btn btn-outline-success w-75" onclick="handleTempCSV()">Download Temperature CSV</button>
+            </div>
+        </div>
+        <div class="row py-3 px-5">
+            <div class="col">
+                <div class="card mb-2 p-2">
+                    <table class="table table-borderless">
+                        <thead>
+                            <tr>
+                                <th scope="col">Sensor ID</th>
+                                <th scope="col">Time</th>
+                                <th scope="col">Humidity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="humidity-data-table"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card mb-3 p-2">
+                    <table class="table table-borderless">
+                        <thead>
+                            <tr>
+                                <th scope="col">Sensor ID</th>
+                                <th scope="col">Time</th>
+                                <th scope="col">Temperature (F)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="temperature-data-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="row py-3 px-5">
+
+        </div>
+    </div>   
+    <script>
+        fetch('http://127.0.0.1:5000/api/humidity', { method: 'GET' })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                appendHumidityData(data);
+            })
+            .catch(function (err) {
+                console.log('error: ' + err);
+            });
+        fetch('http://127.0.0.1:5000/api/temperature', { method: 'GET' })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                appendTemperatureData(data);
+            })
+            .catch(function (err) {
+                console.log('error: ' + err);
+            });
+        function appendHumidityData(data) {
+            data = data.data.reverse()
+            var humidity_table = document.getElementById("humidity-data-table");
+            for (var i = 0; i < 10; i++) {
+                var tr = document.createElement("tr");
+                tr.innerHTML  = `<td>${data[i].sensor_id}</td>` +
+                                `<td>${data[i].time}</td>` +
+                                `<td>${data[i].value} %</td>`;
+                humidity_table.appendChild(tr);
+            }
+        }
+        function appendTemperatureData(data) {
+            data = data.data.reverse()
+            var humidity_table = document.getElementById("temperature-data-table");
+            for (var i = 0; i < 10; i++) {
+                var tr = document.createElement("tr");
+                tr.innerHTML  = `<td>${data[i].sensor_id}</td>` +
+                                `<td>${data[i].time}</td>` +
+                                `<td>${data[i].value}</td>`;
+                humidity_table.appendChild(tr);
+            }
+        }
+        // https://stackoverflow.com/questions/24898044/is-possible-to-save-javascript-variable-as-file
+        function handleTempCSV() {
+            fetch('http://127.0.0.1:5000/api/temperature', { method: 'GET' })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                var csv = jsonToCSV(data);
+
+                var hiddenElement = document.createElement('a');
+                hiddenElement.href = 'data:attachment/text,' + encodeURI(csv);
+                hiddenElement.target = '_blank';
+                hiddenElement.download = 'temp-data.csv';
+                hiddenElement.click();
+            })
+            .catch(function (err) {
+                console.log('error: ' + err);
+            });
+        }
+        function handleHumidCSV() {
+            fetch('http://127.0.0.1:5000/api/humidity', { method: 'GET' })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                var csv = jsonToCSV(data);
+
+                var hiddenElement = document.createElement('a');
+                hiddenElement.href = 'data:attachment/text,' + encodeURI(csv);
+                hiddenElement.target = '_blank';
+                hiddenElement.download = 'humid-data.csv';
+                hiddenElement.click();
+            })
+            .catch(function (err) {
+                console.log('error: ' + err);
+            });
+        }
+        // https://stackoverflow.com/questions/8847766/how-to-convert-json-to-csv-format-and-store-in-a-variable
+        function jsonToCSV(json_data) {
+            const items = json_data.data
+            const replacer = (key, value) => value === null ? '' : value // specify how you want to handle null values here
+            const header = Object.keys(items[0])
+            const csv = [
+                header.join(','), // header row first
+                ...items.map(row => header.map(fieldName => JSON.stringify(row[fieldName], replacer)).join(','))
+            ].join('\r\n')
+            return csv
+        }
+    </script>
+     <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+</body>
+</html>
